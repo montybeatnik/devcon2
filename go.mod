@@ -1,4 +1,4 @@
-module github.com/montybeatnik/devcon
+module github.com/montybeatnik/devcon2
 
 go 1.23.3
 
