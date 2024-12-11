@@ -11,9 +11,9 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// sshClient contains enough information about a device
+// SSHClient contains enough information about a device
 // to remote access the device using the ssh protocol.
-type sshClient struct {
+type SSHClient struct {
 	target string
 	port   string
 	cfg    *ssh.ClientConfig
@@ -21,25 +21,25 @@ type sshClient struct {
 
 // option is a functional paradigm to apply options
 // to a factory function.
-type option func() (func(*sshClient), error)
+type option func() (func(*SSHClient), error)
 
 // failedOption deals with option error cases.
 func failedOption(err error) option {
-	return func() (func(*sshClient), error) {
+	return func() (func(*SSHClient), error) {
 		return nil, err
 	}
 }
 
 // properOption is the success case for an option.
-func properOption(setter func(*sshClient)) option {
-	return func() (func(*sshClient), error) {
+func properOption(setter func(*SSHClient)) option {
+	return func() (func(*SSHClient), error) {
 		return setter, nil
 	}
 }
 
 // WithTimeout applies a timeout in seconds for the client connection.
 func WithTimeout(timeout time.Duration) option {
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		c.cfg.Timeout = timeout
 	})
 }
@@ -47,14 +47,14 @@ func WithTimeout(timeout time.Duration) option {
 // WithPort applies a port to the client. If not set, the default port
 // of 22 is applied.
 func WithPort(port string) option {
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		c.port = port
 	})
 }
 
 // WithPassword applies a password to the client.
 func WithPassword(pw string) option {
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		authMethod := []ssh.AuthMethod{
 			ssh.Password(pw),
 		}
@@ -70,7 +70,7 @@ func WithHostKeyCallback(knownhostsFile string) option {
 	if err != nil {
 		return failedOption(err)
 	}
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		c.cfg.HostKeyCallback = hostKeyCallback
 	})
 }
@@ -91,7 +91,7 @@ func WithKey(keyfile string) option {
 	if err != nil {
 		return failedOption(err)
 	}
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		authMethod := []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		}
@@ -105,7 +105,7 @@ func WithKey(keyfile string) option {
 //   - diffie-hellman-group14-sha256
 //   - curve25519-sha256
 func WithKeyExchange(key string) option {
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		c.cfg.KeyExchanges = append(c.cfg.KeyExchanges, key)
 	})
 }
@@ -117,14 +117,14 @@ func WithKeyExchange(key string) option {
 //   - aes256-ctr
 //   - 3des-cbc
 func WithCipher(cipher string) option {
-	return properOption(func(c *sshClient) {
+	return properOption(func(c *SSHClient) {
 		c.cfg.Ciphers = append(c.cfg.Ciphers, cipher)
 	})
 }
 
 // setup runs through any supplied options checking for
 // any errors, returning nil if there are none.
-func (c *sshClient) setup(opts ...option) error {
+func (c *SSHClient) setup(opts ...option) error {
 	if c == nil {
 		return nil
 	}
@@ -145,9 +145,9 @@ func (c *sshClient) setup(opts ...option) error {
 
 // NewClient is a factory function that takes in a a username, a target
 // in the form of an IP or a hostname, and variadic options.
-func NewClient(user, target string, opts ...option) (*sshClient, error) {
+func NewClient(user, target string, opts ...option) (*SSHClient, error) {
 	defaultPort := "22"
-	client := &sshClient{
+	client := &SSHClient{
 		port:   defaultPort,
 		target: target,
 		cfg: &ssh.ClientConfig{
@@ -164,7 +164,7 @@ func NewClient(user, target string, opts ...option) (*sshClient, error) {
 
 // Run takes in a command, opens a remote connection to a target
 // device, and runs in against the device.
-func (c *sshClient) Run(cmd string) (string, error) {
+func (c *SSHClient) Run(cmd string) (string, error) {
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%v:22", c.target), c.cfg)
 	if err != nil {
 		return "", errors.Wrap(err, "dial failed")
@@ -185,7 +185,7 @@ func (c *sshClient) Run(cmd string) (string, error) {
 // RunAll takes in a slice of strings, normally a configuration, establishes
 // an interactive session with the target, running in each command
 // line by line.
-func (c *sshClient) RunAll(cmds []string) (string, error) {
+func (c *SSHClient) RunAll(cmds []string) (string, error) {
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%v:22", c.target), c.cfg)
 	if err != nil {
 		return "", errors.Wrap(err, "dial failed")
